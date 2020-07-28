@@ -1,0 +1,21 @@
+---
+# tasks file for sngrep
+
+- name: Add sngrep repository
+  apt_repository:
+    repo: deb http://packages.irontec.com/debian jessie main
+    state: present
+    filename: sngrep
+  when: ansible_distribution == 'Debian' and ansible_distribution_release == 'jessie'
+
+- name: Add sngrep repository key
+  apt_key:
+    url: http://packages.irontec.com/public.key
+    state: present
+  when: ansible_distribution == 'Debian' and ansible_distribution_release == 'jessie'
+
+- name: Install sngrep
+  apt:
+    name: sngrep
+    state: present
+    update_cache: yes
