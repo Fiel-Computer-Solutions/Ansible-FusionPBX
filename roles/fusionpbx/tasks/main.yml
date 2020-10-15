@@ -1,0 +1,38 @@
+---
+# tasks file for fusionpbx
+
+- name: Install Prerequisites
+  apt:
+    pkg:
+    - vim
+    - git
+    - dbus
+    - haveged
+    - ssl-cert
+    - qrencode
+    - ghostscript
+    - libtiff5-dev
+    - libtiff-tools
+    - at
+
+- name: Create Cache Directory
+  file:
+    path: /var/cache/fusionpbx
+    state: directory
+    recurse: yes
+    owner:  www-data
+    group: www-data
+
+- name: Clone FusionPBX Source
+  git:
+    repo: 'https://github.com/fusionpbx/fusionpbx.git'
+    dest: /var/www/fusionpbx
+    version: {{ system_branch }}
+
+- name: Set Permissions
+  file:
+    path: /var/www/fusionpx
+    state: directory
+    recurse: yes
+    owner: www-data
+    group: www-data
