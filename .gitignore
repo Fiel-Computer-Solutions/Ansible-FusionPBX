@@ -1,3 +1,4 @@
 deploy.sh
 inv.proxmox.yml
 ansible.cfg
+fusionpbx.yml
