@@ -22,6 +22,7 @@
     - net-tools
     - snmpd
     - gpg
+    - unzip
 
 - name: SNMP - Enable read only public access
   ansible.builtin.lineinfile:
@@ -43,10 +44,13 @@
     create: true
 
 - name: Install & Configure IPTables
-  import_tasks: iptables.yml
+  ansible.builtin.import_tasks: iptables.yml
 
 - name: Install sngrep
-  import_tasks: sngrep.yml
+  ansible.builtin.import_tasks: sngrep.yml
 
 - name: Download FusionPBX
-  import_tasks: fusionpbx.yml
+  ansible.builtin.import_tasks: fusionpbx.yml
+
+- name: Install PHP
+  ansible.builtin.import_tasks: php.yml
