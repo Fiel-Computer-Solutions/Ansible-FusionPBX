@@ -1,0 +1,30 @@
+- name: SNGREP - Create keyrings directory
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+
+- name: SNGREP - Download Irontec signing key
+  ansible.builtin.get_url:
+    url: http://packages.irontec.com/public.key
+    dest: /etc/apt/keyrings/irontec.key
+    mode: '0440'
+
+- name: SNGREP - Dearmor Irontec signing key
+  ansible.builtin.command: gpg -o /etc/apt/keyrings/irontec.gpg --dearmor /etc/apt/keyrings/irontec.key
+  args:
+    creates: /etc/apt/keyrings/irontec.gpg
+
+- name: SNGREP - Add Irontec repository
+  ansible.builtin.apt_repository:
+    repo: deb [signed-by=/etc/apt/keyrings/irontec.gpg] http://packages.irontec.com/debian bookworm main
+    state: present
+
+- name: SNGREP - Update APT cache
+  ansible.builtin.apt:
+    update_cache: yes
+
+- name: SNGREP - Install sngrep
+  ansible.builtin.apt:
+    name: sngrep
+    

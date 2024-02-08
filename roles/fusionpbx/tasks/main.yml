@@ -21,6 +21,7 @@
     - nano
     - net-tools
     - snmpd
+    - gpg
 
 - name: SNMP - Enable read only public access
   ansible.builtin.lineinfile:
@@ -43,3 +44,6 @@
 
 - name: Install & Configure IPTables
   import_tasks: iptables.yml
+
+- name: Install sngrep
+  import_tasks: sngrep.yml
