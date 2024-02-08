@@ -47,3 +47,6 @@
 
 - name: Install sngrep
   import_tasks: sngrep.yml
+
+- name: Download FusionPBX
+  import_tasks: fusionpbx.yml

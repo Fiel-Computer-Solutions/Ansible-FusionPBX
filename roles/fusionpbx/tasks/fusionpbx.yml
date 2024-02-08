@@ -1,0 +1,38 @@
+- name: FUSIONPBX - Install prerequisites
+  ansible.builtin.apt:
+    pkg:
+    - vim
+    - git
+    - dbus
+    - haveged
+    - ssl-cert
+    - qrencode
+    - ghostscript
+    - libtiff5-dev
+    - libtiff-tools
+    - at
+
+- name: FUSIONPBX - Create cache directory
+  ansible.builtin.file:
+    path: /var/cache/fusionpbx
+    state: directory
+    mode: '0755'
+    owner: www-data
+    group: www-data
+
+- name: FUSIONPBX - Create install directory
+  ansible.builtin.file:
+    path: /var/www/fusionpbx
+    state: directory
+    mode: '0755'
+    owner: www-data
+    group: www-data
+
+- name: FUSIONPBX - Clone repository
+  ansible.builtin.git:
+    repo: https://github.com/fusionpbx/fusionpbx.git
+    dest: /var/www/fusionpbx
+    single_branch: yes
+    version: "{{ system_branch }}"
+  become: true
+  become_user: www-data
