@@ -1,0 +1,139 @@
+- name: IPTABLES - Disable UFW
+  ansible.builtin.command: ufw reset &&  ufw disable
+  ignore_errors: true
+
+- name: IPTABLES - Uninstall UFW
+  ansible.builtin.apt:
+    name: ufw
+    state: absent
+
+- name: IPTABLES - Install iptables
+  ansible.builtin.apt:
+    name: iptables
+
+- name: IPTABLES - Purge ufw rules
+  ansible.builtin.iptables:
+    chain: "{{ item }}"
+    chain_management: true
+    state: absent
+  ignore_errors: true
+  loop:
+    - ufw-after-forward
+    - ufw-after-input
+    - ufw-after-logging-forward
+    - ufw-after-logging-input
+    - ufw-after-logging-output
+    - ufw-after-output
+    - ufw-before-forward
+    - ufw-before-input
+    - ufw-before-logging-forward
+    - ufw-before-logging-input
+    - ufw-before-logging-output
+    - ufw-before-output
+    - ufw-reject-forward
+    - ufw-reject-input
+    - ufw-reject-output
+    - ufw-track-forward
+    - ufw-track-input
+    - ufw-track-output
+  
+- name: IPTABLES - Accept on all chains
+  ansible.builtin.iptables:
+    chain: "{{ item }}"
+    policy: ACCEPT
+  with_items:  [ 'INPUT', 'FORWARD', 'OUTPUT' ]
+
+- name: IPTABLES - Flush all chains
+  ansible.builtin.iptables:
+    chain: "{{ item }}"
+    flush: yes
+  with_items:  [ 'INPUT', 'FORWARD', 'OUTPUT' ]
+
+- name: IPTABLES - Accept loopback traffic
+  ansible.builtin.iptables:
+    chain: INPUT
+    in_interface: lo
+    jump: ACCEPT
+
+- name: IPTABLES - Allow traffic related to established connections
+  ansible.builtin.iptables:
+    chain: INPUT
+    match: state
+    ctstate: [ 'ESTABLISHED', 'RELATED' ]
+    jump: ACCEPT
+
+- name: IPTABLES - Block malicious SIP access
+  ansible.builtin.command: 'iptables -A INPUT -j DROP -p {{ item.proto }} --dport 5060:5091 -m string --string "{{ item.case }}" --algo bm --icase'
+  loop:
+    - { case: 'friendly-scanner', proto: 'tcp' }
+    - { case: 'friendly-scanner', proto: 'udp' }
+    - { case: 'sipcli/', proto: 'tcp' }
+    - { case: 'sipcli/', proto: 'udp' }
+    - { case: 'VaxSIPUserAgent/', proto: 'tcp' }
+    - { case: 'VaxSIPUserAgent/', proto: 'udp' }
+    - { case: 'pplsip', proto: 'tcp' }
+    - { case: 'pplsip', proto: 'udp' }
+    - { case: 'system ', proto: 'tcp' }
+    - { case: 'system ', proto: 'udp' }
+    - { case: 'exec.', proto: 'tcp' }
+    - { case: 'exec.', proto: 'udp' }
+    - { case: 'multipart/mixed;boundary', proto: 'tcp' }
+    - { case: 'multipart/mixed;boundary', proto: 'udp' }
+
+- name: IPTABLES - Allow inbound access
+  ansible.builtin.iptables:
+    chain: INPUT
+    protocol: "{{ item.proto }}"
+    destination_port: "{{ item.port }}"
+    jump: ACCEPT
+  loop:
+    - { proto: 'tcp', port: '22' }
+    - { proto: 'tcp', port: '80' }
+    - { proto: 'tcp', port: '443' }
+    - { proto: 'tcp', port: '7443' }
+    - { proto: 'tcp', port: '5060:5091' }
+    - { proto: 'udp', port: '5060:5091' }
+    - { proto: 'udp', port: '16384:32768' }
+    - { proto: 'udp', port: '1194' }
+
+- name: IPTABLES - Allow inbound ICMP
+  ansible.builtin.iptables:
+    chain: INPUT
+    protocol: icmp
+    icmp_type: echo-request
+    jump: ACCEPT
+
+- name: IPTABLES - Set outbound rules
+  ansible.builtin.iptables:
+    table: mangle
+    chain: OUTPUT
+    protocol: "{{ item.proto }}"
+    match: "{{ item.proto }}"
+    source_port: "{{ item.ports }}"
+    jump: DSCP
+    set_dscp_mark: "{{ item.dscp }}"
+  loop:
+    - { proto: 'udp', ports: '16384:32768', dscp: 46 }
+    - { proto: 'udp', ports: '5060:5091', dscp: 26 }
+    - { proto: 'tcp', ports: '5060:5091', dscp: 26 }
+
+- name: IPTABLES - Lock down chains
+  ansible.builtin.iptables:
+    chain: "{{ item.chain }}"
+    policy: "{{ item.policy }}"
+  loop:
+    - { chain: 'INPUT', policy: 'DROP' }
+    - { chain: 'FORWARD', policy: 'DROP' }
+    - { chain: 'OUTPUT', policy: 'ACCEPT' }
+
+- name: IPTABLES - Set rules to be persistent
+  ansible.builtin.debconf:
+    name: iptables-persistent
+    question: "iptables-persistent/autosave_{{ item }}"
+    vtype: boolean
+    value: 'true'
+  with_items:  [ 'v4', 'v6' ]
+
+- name: IPTABLES - Install iptables-persistent
+  ansible.builtin.apt:
+    name: iptables-persistent
