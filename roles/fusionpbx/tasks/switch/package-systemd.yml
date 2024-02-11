@@ -1,0 +1,21 @@
+- name: FREESWITCH (PACKAGE-SYSTEMD) - Remove freeswitch-systemd package
+  ansible.builtin.apt:
+    name: freeswitch-systemd
+    state: absent
+
+- name: FREESWITCH (PACKAGE-SYSTEMD) - Copy FreeSWITCH SystemD service
+  ansible.builtin.copy:
+    src: freeswitch.service.package
+    dest: /lib/systemd/system/freeswitch.service
+
+- name: FREESWITCH (PACKAGE-SYSTEMD) - Copy FreeSWITCH service defaults
+  ansible.builtin.copy:
+    src: etc.default.freeswitch.package
+    dest: /etc/default/freeswitch
+
+- name: FREESWITCH (PACKAGE-SYSTEMD) - Enable FreeSWITCH service
+  ansible.builtin.systemd_service:
+    name: freeswitch
+    daemon_reload: true
+    masked: false
+    state: started

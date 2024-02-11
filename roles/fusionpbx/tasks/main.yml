@@ -23,6 +23,7 @@
     - snmpd
     - gpg
     - unzip
+    - nginx
 
 - name: SNMP - Enable read only public access
   ansible.builtin.lineinfile:
@@ -54,3 +55,9 @@
 
 - name: Install PHP
   ansible.builtin.import_tasks: php.yml
+
+- name: Configure Nginx
+  ansible.builtin.import_tasks: nginx.yml
+
+- name: Install & Configure FreeSWITCH
+  ansible.builtin.import_tasks: switch.yml

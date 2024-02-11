@@ -1,0 +1,27 @@
+- name: FREESWITCH (SOURCE-SOUNDS) - Build Sounds
+  ansible.builtin.command:
+    cmd: "make -j {{ ansible_facts['processor_nproc'] }} sounds-install moh-install"
+    chdir: "/usr/src/freeswitch-{{ switch_version }}"
+
+- name: FREESWITCH (SOURCE-SOUNDS) - Build HD Sounds
+  ansible.builtin.command:
+    cmd: "make -j {{ ansible_facts['processor_nproc'] }} hd-sounds-install hd-moh-install"
+    chdir: "/usr/src/freeswitch-{{ switch_version }}"
+
+- name: FREESWITCH (SOURCE-SOUNDS) - Build CD Sounds
+  ansible.builtin.command:
+    cmd: "make -j {{ ansible_facts['processor_nproc'] }} cd-sounds-install cd-moh-install"
+    chdir: "/usr/src/freeswitch-{{ switch_version }}"
+
+- name: FREESWITCH (SOURCE-SOUNDS) - Remove FreeSWITCH default music dir
+  ansible.builtin.file:
+    path: /usr/share/freeswitch/sounds/music/default
+    state: absent
+
+- name: FREESWITCH (SOURCE-SOUNDS) - Create FreeSWITCH default music dir
+  ansible.builtin.file:
+    path: /usr/share/freeswitch/sounds/music/default
+    state: directory
+
+- name: FREESWITCH (SOURCE-SOUNDS) - Move music to the default dir
+  ansible.builtin.shell: "mv /usr/share/freeswitch/sounds/music/*000 /usr/share/freeswitch/sounds/music/default"
