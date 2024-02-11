@@ -61,3 +61,6 @@
 
 - name: Install & Configure FreeSWITCH
   ansible.builtin.import_tasks: switch.yml
+
+- name: Install & Configure Fail2Ban
+  ansible.builtin.import_tasks: fail2ban.yml
