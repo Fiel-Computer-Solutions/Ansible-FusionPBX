@@ -1,0 +1,194 @@
+- name: FINISH - Copy backup cron job
+  ansible.builtin.template:
+    src: fusionpbx-backup.j2
+    dest: /etc/cron.daily/fusionpbx-backup
+    mode: '755'
+    variable_start_string: "[%"
+    variable_end_string: "%]"
+    block_start_string: "[[%"
+    block_end_string: "%]]"
+  when: database_backup == True
+
+- name: FINISH - Create FusionPBX config dir
+  ansible.builtin.file:
+    path: /etc/fusionpbx
+    state: directory
+
+- name: FINISH - Copy FusionPBX config file
+  ansible.builtin.template:
+    src: fusionpbx-config.j2
+    dest: /etc/fusionpbx/config.conf
+    variable_start_string: "[%"
+    variable_end_string: "%]"
+    block_start_string: "[[%"
+    block_end_string: "%]]"
+
+- name: FINISH - Create Database Schema
+  ansible.builtin.command: "php /var/www/fusionpbx/core/upgrade/upgrade_schema.php"
+  args:
+    chdir: /var/www/fusionpbx
+  when: database_initial_setup == True
+
+- name: FINISH - Set domain name to hostname
+  ansible.builtin.set_fact:
+    fusion_domain_name: "{{ ansible_facts['hostname'] }}"
+    cacheable: yes
+  when: domain_name == "hostname"
+
+- name: FINISH - Set domain name to IPv4 address
+  ansible.builtin.set_fact:
+    fusion_domain_name: "{{ ansible_facts['default_ipv4']['address'] }}"
+    cacheable: yes
+  when: domain_name == "ip_v4"
+
+- name: FINISH - Set domain name to IPv6 address
+  ansible.builtin.set_fact:
+    fusion_domain_name: "{{ ansible_facts['default_ipv6']['address'] }}"
+    cacheable: yes
+  when: domain_name == "ip_v6"
+
+- name: FINISH - Set domain name to provided value
+  ansible.builtin.set_fact:
+    fusion_domain_name: "{{ domain_name }}"
+    cacheable: yes
+  when: domain_name != "hostname" and domain_name != "ip_v4" and domain_name != "ip_v6"
+
+- name: FINISH - Generate domain UUID
+  ansible.builtin.command: "/usr/bin/php /var/www/fusionpbx/resources/uuid.php"
+  register: domain_uuid
+
+- name: FINISH - Add domain name to database
+  ansible.builtin.command:
+    argv:
+      - psql
+      - "--host={{ database_host }}"
+      - "--port={{ database_port }}"
+      - "--username={{ database_username }}"
+      - -c 
+      - "insert into v_domains (domain_uuid, domain_name, domain_enabled) values('{{ domain_uuid.stdout }}', '{{ ansible_facts['fusion_domain_name'] }}', 'true');"
+  environment:
+    PGPASSWORD: "{{ database_password }}"
+  when: database_initial_setup == True
+
+- name: FINISH - Create domain defaults
+  ansible.builtin.command: "/usr/bin/php /var/www/fusionpbx/core/upgrade/upgrade_domains.php"
+  args:
+    chdir: /var/www/fusionpbx
+  when: database_initial_setup == True
+
+- name: FINISH - Generate user UUID
+  ansible.builtin.command: "/usr/bin/php /var/www/fusionpbx/resources/uuid.php"
+  register: user_uuid
+
+- name: FINISH - Generate user salt
+  ansible.builtin.command: "/usr/bin/php /var/www/fusionpbx/resources/uuid.php"
+  register: user_salt
+
+- name: FINISH - Generate password hash
+  ansible.builtin.command: /usr/bin/php -r "echo md5('{{ user_salt.stdout }}{{ system_password }}');"
+  register: password_hash
+
+- name: FINISH - Add system user to database
+  ansible.builtin.command:
+    argv:
+      - psql
+      - "--host={{ database_host }}"
+      - "--port={{ database_port }}"
+      - "--username={{ database_username }}"
+      - -c 
+      - "insert into v_users (user_uuid, domain_uuid, username, password, salt, user_enabled) values('{{ user_uuid.stdout }}', '{{ domain_uuid.stdout }}', '{{ system_username }}', '{{ password_hash.stdout }}', '{{ user_salt.stdout }}', 'true');"
+  environment:
+    PGPASSWORD: "{{ database_password }}"
+  when: database_initial_setup == True
+
+- name: FINISH - Get superadmin group UUID
+  ansible.builtin.command:
+    argv:
+      - psql
+      - "--host={{ database_host }}"
+      - "--port={{ database_port }}"
+      - "--username={{ database_username }}"
+      - -qtAX
+      - -c 
+      - "select group_uuid from v_groups where group_name = 'superadmin';"
+  register: group_uuid
+  environment:
+    PGPASSWORD: "{{ database_password }}"
+  when: database_initial_setup == True
+
+- name: FINISH - Generate user group UUID
+  ansible.builtin.command: "/usr/bin/php /var/www/fusionpbx/resources/uuid.php"
+  register: user_group_uuid
+
+- name: FINISH - Add system user to superadmin group
+  ansible.builtin.command:
+    argv:
+      - psql
+      - "--host={{ database_host }}"
+      - "--port={{ database_port }}"
+      - "--username={{ database_username }}"
+      - -c 
+      - "insert into v_user_groups (user_group_uuid, domain_uuid, group_name, group_uuid, user_uuid) values('{{ user_group_uuid.stdout }}', '{{ domain_uuid.stdout }}', 'superadmin', '{{ group_uuid.stdout }}', '{{ user_uuid.stdout }}');"
+  environment:
+    PGPASSWORD: "{{ database_password }}"
+  when: database_initial_setup == True
+
+- name: FINISH - Generate XML CDR Username
+  ansible.builtin.shell: "dd if=/dev/urandom bs=1 count=20 2>/dev/null | base64 | sed 's/[=\\+//]//g'"
+  register: cdr_username
+
+- name: FINISH - Generate XML CDR Password
+  ansible.builtin.shell: "dd if=/dev/urandom bs=1 count=20 2>/dev/null | base64 | sed 's/[=\\+//]//g'"
+  register: cdr_password
+
+- name: FINISH - Replace credentials in XML CDR conf
+  ansible.builtin.replace:
+    path: /etc/freeswitch/autoload_configs/xml_cdr.conf.xml
+    regexp: "{{ item.var }}"
+    replace: "{{ item.val }}"
+  loop:
+    - { var: "{v_user}", val: "{{ cdr_username.stdout }}"}
+    - { var: "{v_pass}", val: "{{ cdr_password.stdout }}"}
+
+- name: FINISH - Create app defaults
+  ansible.builtin.command: "/usr/bin/php /var/www/fusionpbx/core/upgrade/upgrade.php"
+  args:
+    chdir: /var/www/fusionpbx
+  when: database_initial_setup == True
+
+- name: FINISH - Restart FreeSWITCH
+  ansible.builtin.systemd_service:
+    name: freeswitch
+    daemon_reload: true
+    state: restarted
+
+- name: FINISH - Install email_queue service
+  ansible.builtin.copy:
+    src: /var/www/fusionpbx/app/email_queue/resources/service/debian.service
+    dest: /etc/systemd/system/email_queue.service
+    remote_src: yes
+
+- name: FINISH - Enable & start email_queue service
+  ansible.builtin.systemd_service:
+    name: email_queue
+    daemon_reload: true
+    state: started
+    enabled: true
+
+- name: FINISH - Install event_guard service
+  ansible.builtin.copy:
+    src: /var/www/fusionpbx/app/event_guard/resources/service/debian.service
+    dest: /etc/systemd/system/event_guard.service
+    remote_src: yes
+
+- name: FINISH - Enable & start event_guard service
+  ansible.builtin.systemd_service:
+    name: event_guard
+    daemon_reload: true
+    state: started
+    enabled: true
+
+- name: FINISH - Add XML CDR import cronjob
+  ansible.builtin.cron:
+    name: "XML CDR Import"
+    job: "/usr/bin/php /var/www/fusionpbx/app/xml_cdr/xml_cdr_import.php 300"

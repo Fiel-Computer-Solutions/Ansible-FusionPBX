@@ -1,0 +1,91 @@
+- name: POSTGRESQL - Install PostgreSQL from system repo
+  ansible.builtin.apt:
+    pkg:
+    - postgresql
+  when: (database_host == "127.0.0.1" or database_host == "::1") and database_repo == "system"
+
+- name: POSTGRESQL - Create keyrings directory
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+  when: database_repo == "official"
+
+- name: POSTGRESQL - Download PostgreSQL signing key
+  ansible.builtin.get_url:
+    url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+    dest: /etc/apt/keyrings/pgdg.asc
+    mode: '0440'
+  when: database_repo == "official"
+
+- name: POSTGRESQL - Dearmor PostgreSQL signing key
+  ansible.builtin.command: gpg -o /etc/apt/keyrings/pgdg.gpg --dearmor /etc/apt/keyrings/pgdg.asc
+  args:
+    creates: /etc/apt/keyrings/pgdg.gpg
+  when: database_repo == "official"
+
+- name: POSTGRESQL - Add PostgreSQL official repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/etc/apt/keyrings/pgdg.gpg] http://apt.postgresql.org/pub/repos/apt {{ ansible_facts['lsb']['codename'] }}-pgdg main"
+    state: present
+  when: database_repo == "official"
+
+- name: POSTGRESQL - Update APT cache
+  ansible.builtin.apt:
+    update_cache: yes
+  when: database_repo == "official"
+
+- name: POSTGRESQL - Install latest PostgreSQL from official repo
+  ansible.builtin.apt:
+    name: postgresql
+  when: database_repo == "official" and database_version == "lastest"
+
+- name: POSTGRESQL - Install PostgreSQL from official repo
+  ansible.builtin.apt:
+    name: "postgresql-{{ database_version }}"
+  when: database_repo == "official" and database_version != "lastest"
+
+- name: POSTGRESQL - Install PostgreSQL client
+  ansible.builtin.apt:
+    pkg:
+    - postgresql-client
+  when: database_host != "127.0.0.1" and database_host != "::1" and (database_repo == "system" or database_repo == "official")
+
+- name: POSTGRESQL - Remove PostgreSQL cluster
+  ansible.builtin.command: "pg_dropcluster {{ database_version }} main --stop"
+  ignore_errors: true
+  when: database_host == "127.0.0.1" or database_host == "::1"
+
+- name: POSTGRESQL - Create PostgreSQL cluster
+  ansible.builtin.command: "pg_createcluster {{ database_version }} main"
+  ignore_errors: true
+  when: database_host == "127.0.0.1" or database_host == "::1"
+
+- name: POSTGRESQL - Change scram-sha-256 auth to md5
+  ansible.builtin.command: "sed -i /etc/postgresql/{{ database_version }}/main/pg_hba.conf -e '/^#/!s/scram-sha-256/md5/g'"
+  when: database_host == "127.0.0.1" or database_host == "::1"
+
+- name: POSTGRESQL - Restart service
+  ansible.builtin.systemd_service:
+    name: postgresql
+    daemon_reload: true
+    state: restarted
+  when: database_host == "127.0.0.1" or database_host == "::1"
+
+- name: POSTGRESQL - Set up database & accounts
+  ansible.builtin.command: 'psql -c "{{ item }}"'
+  become: yes
+  become_user: postgres
+  ignore_errors: true
+  args:
+    chdir: /tmp
+  when: database_host == "127.0.0.1" or database_host == "::1"
+  loop:
+    - "SELECT pg_reload_conf();"
+    - "CREATE DATABASE fusionpbx;"
+    - "CREATE DATABASE freeswitch;"
+    - "CREATE ROLE fusionpbx WITH SUPERUSER LOGIN PASSWORD '{{ database_password }}';"
+    - "CREATE ROLE freeswitch WITH SUPERUSER LOGIN PASSWORD '{{ database_password }}';"
+    - "GRANT ALL PRIVILEGES ON DATABASE fusionpbx to fusionpbx;"
+    - "GRANT ALL PRIVILEGES ON DATABASE freeswitch to fusionpbx;"
+    - "GRANT ALL PRIVILEGES ON DATABASE freeswitch to freeswitch;"

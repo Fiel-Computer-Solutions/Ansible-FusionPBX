@@ -1,31 +1,54 @@
 Role Name
 =========
 
-A brief description of the role goes here.
+FusionPBX 5.2 installer. Created by converting the original [fusionpbx-install script](https://github.com/fusionpbx/fusionpbx-install.sh)
 
 Requirements
 ------------
 
-Any pre-requisites that may not be covered by Ansible itself or the role should be mentioned here. For instance, if the role uses the EC2 module, it may be a good idea to mention in this section that the boto package is required.
+Set proper values for variables before running, many will require deleting the DB cluster to change later with this script
 
 Role Variables
 --------------
 
-A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
+| Variable | Default | Options | Description |
+|---|---|---|---|
+| domain_name | hostname | hostname, ip_v4, ip_v6, * | Sets the default domain to the system hostname, v4/v6 address, or other provided name |
+| system_username | admin | * | System superadmin username |
+| system_password | not_secure | * | System superadmin password |
+| system_branch | 5.2 | * | FusionPBX branch tag |
+| switch_branch | stable | * | FreeSWITCH branch tag |
+| switch_source | true | true, false | Build FreeSWITCH from source |
+| switch_package | false | true, false | Install FreeSWITCH from package |
+| switch_version | 1.10.10 | * | FreeSWITCH version |
+| switch_tls | true | true, false | Enable TLS on FreeSWITCH (not currently used) |
+| switch_token | null | * | SignalWire token for FreeSWITCH repository |
+| sofia_version | 1.13.17 | * | Sofia SIP version |
+| database_name | fusionpbx | * | PostgreSQL database name |
+| database_username | fusionpbx | * | PostgreSQL database username |
+| database_password | not_secure | * | PostgreSQL database password |
+| database_repo | official | official, system | What repository to download PostgreSQL from |
+| database_version | 16 | * | PostgreSQL major version to use |
+| database_host | 127.0.0.1 | * | PostgreSQL host, will install db if 127.0.0.1 or ::1 |
+| database_port | 5432 | * | PostgreSQL port |
+| database_backup | false | true, false | Enable database backup cron job |
+| database_initial_setup | true | true, false | Seed database with initial domain, superadmin, and app defaults |
+| php_version | 8.1 | 7.1, 7.3, 7.4, 8.1 | PHP version to use |
+| letsencrypt | true | true, false | Enable Lets Encrypt (not currently used) |
+
 
 Dependencies
 ------------
 
-A list of other roles hosted on Galaxy should go here, plus any details in regards to parameters that may need to be set for other roles, or variables that are used from other roles.
+geerlingguy.php-versions and geerlingguy.php are required.
 
 Example Playbook
 ----------------
 
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
-
-    - hosts: servers
+    - name: FusionPBX
+      hosts: tag_fusionpbx
       roles:
-         - { role: username.rolename, x: 42 }
+        - fusionpbx
 
 License
 -------
@@ -35,4 +58,4 @@ BSD
 Author Information
 ------------------
 
-An optional section for the role authors to include contact information, or a website (HTML is not allowed).
+David Fiel, https://fiel.solutions

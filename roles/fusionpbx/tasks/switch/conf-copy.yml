@@ -1,0 +1,19 @@
+- name: FREESWITCH (CONF-COPY) - Check for FreeSWITCH config backup
+  ansible.builtin.stat:
+    path: /etc/freeswitch.orig
+  register: config_backup
+
+- name: FREESWITCH (CONF-COPY) - Preserve original FreeSWITCH config
+  ansible.builtin.shell: "mv /etc/freeswitch /etc/freeswitch.orig"
+  when: not config_backup.stat.exists
+
+- name: FREESWITCH (CONF-COPY) - Create FreeSWITCH configuration dir
+  ansible.builtin.file:
+    path: /usr/share/freeswitch/sounds/music/default
+    state: directory
+
+- name: FREESWITCH (CONF-COPY) - Copy FusionPBX configurations into FreeSWITCH
+  ansible.builtin.copy:
+    src: /var/www/fusionpbx/app/switch/resources/conf/
+    dest: /etc/freeswitch
+    remote_src: yes

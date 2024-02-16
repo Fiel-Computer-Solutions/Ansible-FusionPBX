@@ -1,0 +1,31 @@
+- name: FAIL2BAN - Install fail2ban
+  ansible.builtin.apt:
+    pkg:
+    - fail2ban
+
+- name: FAIL2BAN - Copy Filters
+  ansible.builtin.copy:
+    src: "fail2ban/{{ item }}.conf"
+    dest: "/etc/fail2ban/filter.d/{{ item }}.conf"
+  loop:
+    - freeswitch
+    - freeswitch-acl
+    - sip-auth-failure
+    - sip-auth-challenge
+    - auth-challenge-ip
+    - freeswitch-ip
+    - fusionpbx
+    - fusionpbx-mac
+    - fusionpbx-404
+    - nginx-404
+    - nginx-dos
+
+- name: FAIL2BAN - Copy Config
+  ansible.builtin.copy:
+    src: fail2ban/jail.local
+    dest: /etc/fail2ban/jail.local
+
+- name: FAIL2BAN - Restart fail2ban service
+  ansible.builtin.systemd_service:
+    name: fail2ban
+    state: restarted

@@ -1,0 +1,46 @@
+- name: NGINX - Copy FusionPBX configuration
+  ansible.builtin.template:
+    src: nginx-fusionpbx.j2
+    dest: /etc/nginx/sites-available/fusionpbx
+    owner: www-data
+    group: www-data
+    variable_start_string: "[%"
+    variable_end_string: "%]"
+    block_start_string: "[[%"
+    block_end_string: "%]]"
+
+- name: NGINX - Enable FusionPBX configuration
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/fusionpbx
+    dest: /etc/nginx/sites-enabled/fusionpbx
+    owner: www-data
+    group: www-data
+    state: link
+
+- name: NGINX - Link SSL private key
+  ansible.builtin.file:
+    src: /etc/ssl/private/ssl-cert-snakeoil.key
+    dest: /etc/ssl/private/nginx.key
+    state: link
+
+- name: NGINX - Link SSL public cert
+  ansible.builtin.file:
+    src: /etc/ssl/certs/ssl-cert-snakeoil.pem
+    dest: /etc/ssl/certs/nginx.crt
+    state: link
+
+- name: NGINX - Remove default config
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+
+- name: NGINX - Create Lets Encrypt directory
+  ansible.builtin.file:
+    path: /var/www/letsencrypt/
+    state: directory
+
+- name: NGINX - Restart service
+  ansible.builtin.systemd_service:
+    state: restarted
+    daemon_reload: true
+    name: nginx

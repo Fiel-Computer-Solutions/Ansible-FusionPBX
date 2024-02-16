@@ -1,0 +1,30 @@
+- name: FREESWITCH - Install FreeSWITCH source (master)
+  ansible.builtin.include_tasks: switch/source-master.yml
+  when: switch_source == True and switch_branch == "master"
+
+- name: FREESWITCH - Install FreeSWITCH source (release)
+  ansible.builtin.include_tasks: switch/source-release.yml
+  when: switch_source == True and switch_branch != "master"
+
+- name: FREESWITCH - Install FreeSWITCH sounds
+  ansible.builtin.include_tasks: switch/source-sounds.yml
+  when: switch_source == True
+
+- name: FREESWITCH - Copy FusionPBX configuration
+  ansible.builtin.import_tasks: switch/conf-copy.yml
+
+- name: FREESWITCH (PACKAGE-PERMISSIONS) - Set correct directory permissions
+  ansible.builtin.file:
+    path: "{{ item }}"
+    owner: www-data
+    group: www-data
+  loop:
+    - /etc/freeswitch
+    - /var/lib/freeswitch
+    - /usr/share/freeswitch
+    - /var/log/freeswitch
+    - /var/run/freeswitch
+    - /var/cache/fusionpbx
+
+- name: FREESWITCH - Configure FreeSWITCH SystemD
+  ansible.builtin.import_tasks: switch/package-systemd.yml

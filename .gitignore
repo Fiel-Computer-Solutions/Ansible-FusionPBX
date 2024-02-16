@@ -1,0 +1,5 @@
+deploy.sh
+inv.proxmox.yml
+ansible.cfg
+/fusionpbx.yml
+/group_vars

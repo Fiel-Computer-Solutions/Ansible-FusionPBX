@@ -1,38 +1,72 @@
 ---
 # tasks file for fusionpbx
 
-- name: Install Prerequisites
-  apt:
+- name: Update all packages to their latest version
+  ansible.builtin.apt:
+    name: "*"
+    state: latest
+    update_cache: yes
+
+- name: Install prerequisites
+  ansible.builtin.apt:
     pkg:
-    - vim
+    - sudo
     - git
-    - dbus
-    - haveged
-    - ssl-cert
-    - qrencode
-    - ghostscript
-    - libtiff5-dev
-    - libtiff-tools
-    - at
+    - wget
+    - lsb-release
+    - systemd
+    - systemd-sysv
+    - ca-certificates
+    - dialog
+    - nano
+    - net-tools
+    - snmpd
+    - gpg
+    - unzip
+    - nginx
 
-- name: Create Cache Directory
-  file:
-    path: /var/cache/fusionpbx
-    state: directory
-    recurse: yes
-    owner:  www-data
-    group: www-data
+- name: SNMP - Enable read only public access
+  ansible.builtin.lineinfile:
+    path: /etc/snmp/snmpd.conf
+    line: rocommunity public
+  register: snmpd_config
 
-- name: Clone FusionPBX Source
-  git:
-    repo: 'https://github.com/fusionpbx/fusionpbx.git'
-    dest: /var/www/fusionpbx
-    version: {{ system_branch }}
+- name: SNMP - Restart service
+  ansible.builtin.systemd_service:
+    name: snmpd
+    state: restarted
+    enabled: true
+  when: snmpd_config is changed
 
-- name: Set Permissions
-  file:
-    path: /var/www/fusionpx
-    state: directory
-    recurse: yes
-    owner: www-data
-    group: www-data
+- name: Disable vi Visual Mode
+  ansible.builtin.lineinfile:
+    path: ~/.vimrc
+    line: set mouse-=a
+    create: true
+
+- name: Install & Configure IPTables
+  ansible.builtin.import_tasks: iptables.yml
+
+- name: Install sngrep
+  ansible.builtin.import_tasks: sngrep.yml
+
+- name: Download FusionPBX
+  ansible.builtin.import_tasks: fusionpbx.yml
+
+- name: Install PHP
+  ansible.builtin.import_tasks: php.yml
+
+- name: Configure Nginx
+  ansible.builtin.import_tasks: nginx.yml
+
+- name: Install & Configure FreeSWITCH
+  ansible.builtin.import_tasks: switch.yml
+
+- name: Install & Configure Fail2Ban
+  ansible.builtin.import_tasks: fail2ban.yml
+
+- name: Install & Configure PostgreSQL
+  ansible.builtin.import_tasks: postgresql.yml
+
+- name: Run finishing tasks
+  ansible.builtin.import_tasks: finish.yml

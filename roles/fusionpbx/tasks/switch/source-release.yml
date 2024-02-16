@@ -1,0 +1,304 @@
+- name: FREESWITCH (SOURCE-RELEASE) - Install prerequisites
+  ansible.builtin.apt:
+    pkg:
+    - autoconf
+    - automake
+    - devscripts
+    - g++
+    - git-core
+    - libncurses5-dev
+    - libtool
+    - make
+    - libjpeg-dev
+    - pkg-config
+    - flac
+    - libgdbm-dev
+    - libdb-dev
+    - gettext
+    - sudo
+    - equivs
+    - mlocate
+    - git
+    - dpkg-dev
+    - libpq-dev
+    - liblua5.2-dev
+    - libtiff5-dev
+    - libperl-dev
+    - libcurl4-openssl-dev
+    - libsqlite3-dev
+    - libpcre3-dev
+    - libspeexdsp-dev
+    - libspeex-dev
+    - libldns-dev
+    - libedit-dev
+    - libopus-dev
+    - libmemcached-dev
+    - libshout3-dev
+    - libmpg123-dev
+    - libmp3lame-dev
+    - yasm
+    - nasm
+    - libsndfile1-dev
+    - libuv1-dev
+    - libvpx-dev
+    - libavformat-dev
+    - libswscale-dev
+    - libvlc-dev
+    - python3-distutils
+    - sox
+    - sqlite3
+    - unzip
+
+- name: FREESWITCH (SOURCE-RELEASE) - Install prerequisites (stretch)
+  ansible.builtin.apt:
+    pkg:
+    - libvpx4
+    - swig3.0
+  when: ansible_facts['lsb']['codename'] == 'stretch'
+
+- name: FREESWITCH (SOURCE-RELEASE) - Install prerequisites (buster)
+  ansible.builtin.apt:
+    pkg:
+    - libvpx5
+    - swig3.0
+  when: ansible_facts['lsb']['codename'] == 'buster'
+
+- name: FREESWITCH (SOURCE-RELEASE) - Install prerequisites (bullseye)
+  ansible.builtin.apt:
+    pkg:
+    - libvpx6
+    - swig4.0
+  when: ansible_facts['lsb']['codename'] == 'bullseye'
+
+- name: FREESWITCH (SOURCE-RELEASE) - Install additional build requirements (switch_version >=1.10.0)
+  ansible.builtin.apt:
+    pkg:
+    - cmake
+    - uuid-dev
+  when: "switch_version is version('1.10.0', '>=')"
+
+- name: FREESWITCH (SOURCE-RELEASE) - Create libks src dir (switch_version >=1.10.0)
+  ansible.builtin.file:
+    path: /usr/src/libks
+    state: directory
+  when: "switch_version is version('1.10.0', '>=')"
+
+- name: FREESWITCH (SOURCE-RELEASE) - Clone libks source (switch_version >=1.10.0)
+  ansible.builtin.git:
+    repo: https://github.com/signalwire/libks.git
+    dest: /usr/src/libks
+  when: "switch_version is version('1.10.0', '>=')"
+
+- name: FREESWITCH (SOURCE-RELEASE) - Cmake libks (switch_version >=1.10.0)
+  ansible.builtin.command:
+    cmd: 'cmake .'
+    chdir: /usr/src/libks
+  when: "switch_version is version('1.10.0', '>=')"
+
+- name: FREESWITCH (SOURCE-RELEASE) - Build libks (switch_version >=1.10.0)
+  ansible.builtin.command:
+    cmd: "make -j {{ ansible_facts['processor_nproc'] }}"
+    chdir: /usr/src/libks
+  when: "switch_version is version('1.10.0', '>=')"
+
+- name: FREESWITCH (SOURCE-RELEASE) - Install libks (switch_version >=1.10.0)
+  ansible.builtin.command:
+    cmd: 'make install'
+    chdir: /usr/src/libks
+  when: "switch_version is version('1.10.0', '>=')"
+
+- name: FREESWITCH (SOURCE-RELEASE) - Download sofia-sip src (switch_version >=1.10.0)
+  ansible.builtin.unarchive:
+    src: "https://github.com/freeswitch/sofia-sip/archive/refs/tags/v{{ sofia_version }}.zip"
+    dest: "/usr/src"
+    remote_src: yes
+    creates: "/usr/src/sofia-sip-{{ sofia_version }}"
+  when: "switch_version is version('1.10.0', '>=')"
+
+- name: FREESWITCH (SOURCE-RELEASE) - Run sofia-sip autogen (switch_version >=1.10.0)
+  ansible.builtin.command:
+    cmd: 'sh autogen.sh'
+    chdir: "/usr/src/sofia-sip-{{ sofia_version }}"
+  environment:
+    C_INCLUDE_PATH: "/usr/src/libks"
+  when: "switch_version is version('1.10.0', '>=')"
+
+- name: FREESWITCH (SOURCE-RELEASE) - Configure sofia-sip (switch_version >=1.10.0)
+  ansible.builtin.command:
+    cmd: './configure --enable-debug'
+    chdir: "/usr/src/sofia-sip-{{ sofia_version }}"
+  environment:
+    C_INCLUDE_PATH: "/usr/src/libks"
+  when: "switch_version is version('1.10.0', '>=')"
+
+- name: FREESWITCH (SOURCE-RELEASE) - Build sofia-sip (switch_version >=1.10.0)
+  ansible.builtin.command:
+    cmd: "make -j {{ ansible_facts['processor_nproc'] }}"
+    chdir: "/usr/src/sofia-sip-{{ sofia_version }}"
+  environment:
+    C_INCLUDE_PATH: "/usr/src/libks"
+  when: "switch_version is version('1.10.0', '>=')"
+
+- name: FREESWITCH (SOURCE-RELEASE) - Install sofia-sip (switch_version >=1.10.0)
+  ansible.builtin.command:
+    cmd: 'make install'
+    chdir: "/usr/src/sofia-sip-{{ sofia_version }}"
+  environment:
+    C_INCLUDE_PATH: "/usr/src/libks"
+  when: "switch_version is version('1.10.0', '>=')"
+
+- name: FREESWITCH (SOURCE-RELEASE) - Create spandsp src dir (switch_version >=1.10.0)
+  ansible.builtin.file:
+    path: /usr/src/spandsp
+    state: directory
+  when: "switch_version is version('1.10.0', '>=')"
+
+- name: FREESWITCH (SOURCE-RELEASE) - Clone spandsp source (switch_version >=1.10.0)
+  ansible.builtin.git:
+    repo: https://github.com/freeswitch/spandsp.git
+    dest: /usr/src/spandsp
+    version: 0d2e6ac65e0e8f53d652665a743015a88bf048d4
+  when: "switch_version is version('1.10.0', '>=')"
+
+- name: FREESWITCH (SOURCE-RELEASE) - Run spandsp autogen (switch_version >=1.10.0)
+  ansible.builtin.command:
+    cmd: 'sh autogen.sh'
+    chdir: /usr/src/spandsp
+  environment:
+    C_INCLUDE_PATH: "/usr/src/libks"
+  when: "switch_version is version('1.10.0', '>=')"
+
+- name: FREESWITCH (SOURCE-RELEASE) - Configure spandsp (switch_version >=1.10.0)
+  ansible.builtin.command:
+    cmd: './configure --enable-debug'
+    chdir: /usr/src/spandsp
+  environment:
+    C_INCLUDE_PATH: "/usr/src/libks"
+  when: "switch_version is version('1.10.0', '>=')"
+
+- name: FREESWITCH (SOURCE-RELEASE) - Build spandsp (switch_version >=1.10.0)
+  ansible.builtin.command:
+    cmd: "make -j {{ ansible_facts['processor_nproc'] }}"
+    chdir: /usr/src/spandsp
+  environment:
+    C_INCLUDE_PATH: "/usr/src/libks"
+  when: "switch_version is version('1.10.0', '>=')"
+
+- name: FREESWITCH (SOURCE-RELEASE) - Install spandsp (switch_version >=1.10.0)
+  ansible.builtin.command:
+    cmd: 'make install'
+    chdir: /usr/src/spandsp
+  environment:
+    C_INCLUDE_PATH: "/usr/src/libks"
+  when: "switch_version is version('1.10.0', '>=')"
+
+- name: FREESWITCH (SOURCE-RELEASE) - Update dynamic linker (switch_version >=1.10.0)
+  ansible.builtin.command:
+    cmd: 'ldconfig'
+  when: "switch_version is version('1.10.0', '>=')"
+
+- name: FREESWITCH (SOURCE-RELEASE) - Remove freeswitch src dir (switch_branch master)
+  ansible.builtin.file:
+    path: /usr/src/freeswitch
+    state: absent
+  when: switch_branch == "master"
+
+- name: FREESWITCH (SOURCE-RELEASE) - Create freeswitch src dir (switch_branch master)
+  ansible.builtin.file:
+    path: /usr/src/freeswitch
+    state: directory
+  when: switch_branch == "master"
+
+- name: FREESWITCH (SOURCE-RELEASE) - Clone freeswitch src (switch_branch master)
+  ansible.builtin.git:
+    repo: https://github.com/signalwire/freeswitch.git
+    dest: /usr/src/freeswitch
+  when: switch_branch == "master"
+
+- name: FREESWITCH (SOURCE-RELEASE) - Bootstrap freeswitch (switch_branch master)
+  ansible.builtin.command:
+    cmd: './bootstrap.sh -j'
+    chdir: /usr/src/freeswitch
+  environment:
+    C_INCLUDE_PATH: "/usr/src/libks"
+  when: switch_branch == "master"
+
+- name: FREESWITCH (SOURCE-RELEASE) - Download freeswitch src (switch_branch stable, switch_version <= 1.8)
+  ansible.builtin.unarchive:
+    src: "http://files.freeswitch.org/freeswitch-releases/freeswitch-{{ switch_version }}.zip"
+    dest: "/usr/src"
+    remote_src: yes
+    creates: "/usr/src/freeswitch-{{ switch_version }}"
+  when: "switch_version is version('1.8', '<=') and switch_branch == 'stable'"
+
+- name: FREESWITCH (SOURCE-RELEASE) - Download freeswitch src (switch_branch stable, switch_version >=1.10.0)
+  ansible.builtin.unarchive:
+    src: "http://files.freeswitch.org/freeswitch-releases/freeswitch-{{ switch_version }}.-release.zip"
+    dest: "/usr/src"
+    remote_src: yes
+    creates: "/usr/src/freeswitch-{{ switch_version }}"
+  when: "switch_version is version('1.10.0', '>=') and switch_branch == 'stable'"
+  register: flag_switch_dl
+
+- name: FREESWITCH (SOURCE-RELEASE) - Move freeswitch src (switch_branch stable, switch_version >=1.10.0)
+  ansible.builtin.command: "mv /usr/src/freeswitch-{{ switch_version }}.-release /usr/src/freeswitch-{{ switch_version }}"
+  when: flag_switch_dl is changed
+
+- name: FREESWITCH (SOURCE-RELEASE) - Enable freeswitch modules
+  ansible.builtin.replace:
+    path: "/usr/src/freeswitch-{{ switch_version }}/modules.conf"
+    regexp: "#{{ item|replace('/', '\/') }}"
+    replace: "{{ item }}"
+  loop:
+    - "applications/mod_av"
+    - "applications/mod_callcenter"
+    - "applications/mod_cidlookup"
+    - "applications/mod_memcache"
+    - "applications/mod_nibblebill"
+    - "applications/mod_curl"
+    - "applications/mod_translate"
+    - "formats/mod_shout"
+    - "formats/mod_pgsql"
+    - "say/mod_say_es"
+    - "say/mod_say_fr"
+
+- name: FREESWITCH (SOURCE-RELEASE) - Disable freeswitch modules
+  ansible.builtin.replace:
+    path: "/usr/src/freeswitch-{{ switch_version }}/modules.conf"
+    regexp: "(?<!#){{ item|replace('/', '\/') }}"
+    replace: "#{{ item }}"
+  loop:
+    - "applications/mod_signalwire"
+    - "endpoints/mod_skinny"
+    - "endpoints/mod_verto"
+
+- name: FREESWITCH (SOURCE-RELEASE) - Configure freeswitch
+  ansible.builtin.command:
+    argv:
+      - "./configure"
+      - "-C"
+      - "--enable-portable-binary"
+      - "--disable-dependency-tracking"
+      - "--enable-debug"
+      - "--prefix=/usr"
+      - "--localstatedir=/var"
+      - "--sysconfdir=/etc"
+      - "--with-openssl"
+      - "--enable-core-pgsql-support"
+    chdir: "/usr/src/freeswitch-{{ switch_version }}"
+  environment:
+    C_INCLUDE_PATH: "/usr/src/libks"
+
+- name: FREESWITCH (SOURCE-RELEASE) - Build freeswitch
+  ansible.builtin.command:
+    cmd: "make -j {{ ansible_facts['processor_nproc'] }}"
+    chdir: "/usr/src/freeswitch-{{ switch_version }}"
+  environment:
+    C_INCLUDE_PATH: "/usr/src/libks"
+
+- name: FREESWITCH (SOURCE-RELEASE) - Install freeswitch
+  ansible.builtin.command:
+    cmd: "make install"
+    chdir: "/usr/src/freeswitch-{{ switch_version }}"
+  environment:
+    C_INCLUDE_PATH: "/usr/src/libks"

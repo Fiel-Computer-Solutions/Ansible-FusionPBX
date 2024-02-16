@@ -1,0 +1,56 @@
+- name: PHP - Install PHP
+  ansible.builtin.include_role:
+    name: "{{ item }}"
+  with_items:  [ 'geerlingguy.php-versions', 'geerlingguy.php' ]
+  vars:
+    php_install_recommends: false
+    php_enable_php_fpm: true
+    php_fpm_listen: /var/run/php/php{{ php_version }}-fpm.sock
+    php_packages: [
+      'php{{ php_version }}',
+      'php{{ php_version }}-common',
+      'php{{ php_version }}-cli',
+      'php{{ php_version }}-fpm',
+      'php{{ php_version }}-dev',
+      'php{{ php_version }}-pgsql',
+      'php{{ php_version }}-sqlite3',
+      'php{{ php_version }}-odbc',
+      'php{{ php_version }}-curl',
+      'php{{ php_version }}-imap',
+      'php{{ php_version }}-xml',
+      'php{{ php_version }}-gd',
+      'php{{ php_version }}-mbstring',
+      'php{{ php_version }}-ldap'
+    ]
+    php_post_max_size: "80M"
+    php_upload_max_filesize: "80M"
+    php_max_input_vars: "8000"
+
+- name: PHP - Download Ioncube
+  ansible.builtin.unarchive:
+    src: https://downloads.ioncube.com/loader_downloads/ioncube_loaders_lin_x86-64.zip
+    dest: /opt
+    remote_src: yes
+
+- name: PHP - Copy Ioncube library to PHP libraries folder
+  ansible.builtin.copy:
+    src: "/opt/ioncube/ioncube_loader_lin_{{ php_version }}.so"
+    dest: "/usr/lib/php/{{ php_library_dir['php' + php_version] }}/ioncube_loader_lin_{{ php_version }}.so"
+    remote_src: yes
+
+- name: PHP - Add Ioncube to FPM configuration
+  ansible.builtin.lineinfile:
+    path: "/etc/php/{{ php_version }}/fpm/conf.d/00-ioncube.ini"
+    line: "zend_extension = /usr/lib/php/{{ php_library_dir['php' + php_version] }}/ioncube_loader_lin_{{ php_version }}.so"
+    create: yes
+
+- name: PHP - Add Ioncube to CLI configuration
+  ansible.builtin.lineinfile:
+    path: "/etc/php/{{ php_version }}/cli/conf.d/00-ioncube.ini"
+    line: "zend_extension = /usr/lib/php/{{ php_library_dir['php' + php_version] }}/ioncube_loader_lin_{{ php_version }}.so"
+    create: yes
+
+- name: PHP - Restart PHP
+  ansible.builtin.systemd_service:
+    state: restarted
+    name: "php{{ php_version }}-fpm"
