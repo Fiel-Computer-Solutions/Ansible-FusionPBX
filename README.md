@@ -16,11 +16,11 @@ Role Variables
 | domain_name | hostname | hostname, ip_v4, ip_v6, * | Sets the default domain to the system hostname, v4/v6 address, or other provided name |
 | system_username | admin | * | System superadmin username |
 | system_password | not_secure | * | System superadmin password |
-| system_branch | 5.2 | * | FusionPBX branch tag |
-| switch_branch | stable | * | FreeSWITCH branch tag |
+| system_branch | 5.2 | master, 5.2 | FusionPBX branch tag |
+| switch_branch | stable | master, stable | FreeSWITCH branch tag |
 | switch_source | true | true, false | Build FreeSWITCH from source |
 | switch_package | false | true, false | Install FreeSWITCH from package |
-| switch_version | 1.10.10 | * | FreeSWITCH version |
+| switch_version | 1.10.10 | * | FreeSWITCH version to install from source |
 | switch_tls | true | true, false | Enable TLS on FreeSWITCH (not currently used) |
 | switch_token | null | * | SignalWire token for FreeSWITCH repository |
 | sofia_version | 1.13.17 | * | Sofia SIP version |
