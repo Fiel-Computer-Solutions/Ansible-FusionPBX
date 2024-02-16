@@ -11,7 +11,7 @@
   when: switch_source == True
 
 - name: FREESWITCH - Copy FusionPBX configuration
-  ansible.builtin.include_tasks: switch/conf-copy.yml
+  ansible.builtin.import_tasks: switch/conf-copy.yml
 
 - name: FREESWITCH (PACKAGE-PERMISSIONS) - Set correct directory permissions
   ansible.builtin.file:
@@ -27,4 +27,4 @@
     - /var/cache/fusionpbx
 
 - name: FREESWITCH - Configure FreeSWITCH SystemD
-  ansible.builtin.include_tasks: switch/package-systemd.yml
+  ansible.builtin.import_tasks: switch/package-systemd.yml

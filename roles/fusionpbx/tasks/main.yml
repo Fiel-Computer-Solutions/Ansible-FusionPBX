@@ -64,3 +64,9 @@
 
 - name: Install & Configure Fail2Ban
   ansible.builtin.import_tasks: fail2ban.yml
+
+- name: Install & Configure PostgreSQL
+  ansible.builtin.import_tasks: postgresql.yml
+
+- name: Run finishing tasks
+  ansible.builtin.import_tasks: finish.yml
