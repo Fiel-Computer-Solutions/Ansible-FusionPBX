@@ -1,7 +1,7 @@
 Role Name
 =========
 
-FusionPBX 5.2 installer. Created by converting the original [fusionpbx-install script](https://github.com/fusionpbx/fusionpbx-install.sh)
+FusionPBX 5.2 installer for Debian Linux. Created by converting the original [fusionpbx-install script](https://github.com/fusionpbx/fusionpbx-install.sh)
 
 Requirements
 ------------
